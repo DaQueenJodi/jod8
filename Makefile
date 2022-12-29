@@ -1,5 +1,6 @@
 SFLAGS=-fsanitize=address,leak,undefined
-CFLAGS=-Wextra -Wall -Wpedantic $(SFLAGS)
+SDL=$(shell pkgconf --libs --cflags sdl2)
+CFLAGS=-Wextra -Wall -Wpedantic $(SDL)  $(SFLAGS)
 
 SRCS=$(shell find -name "*.c")
 BIN=bin/chip8

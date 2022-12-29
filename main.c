@@ -1,11 +1,12 @@
+#include "frontends/frontends.h"
 #include "parser.h"
 #include <assert.h>
 #include <endian.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #define DEBUG
 #define MEM_START 0x200
 
@@ -164,9 +165,9 @@ void do_instruction(Instruction inst) {
     for (size_t i = 0; i < n; i++) {
       uint8_t *byte = &FRAMEBUFFER[(starty * 32) + startx];
       if ((*byte & MEMORY[IR + i]) == 0) { // check if any bits will be zeroed
-        VF = 1;
-      } else {
         VF = 0;
+      } else {
+        VF = 1;
       }
       *byte ^= MEMORY[IR + i];
     }
@@ -190,7 +191,16 @@ void do_instruction(Instruction inst) {
     for (size_t i = 0; i < n; i++) {
       REG(i) = MEMORY[IR + i];
     }
-		break;
+    break;
+  }
+  case LDBCD: {
+    uint8_t n = args[0];
+    size_t counter = 0;
+    do {
+      n = floor(n /= 10);
+      MEMORY[IR + counter++] = n;
+    } while (n != 0);
+    break;
   }
   default: {
     LOG("unimplemented: %d", inst.opcode);
@@ -213,8 +223,20 @@ void load_file(char *path) {
 }
 
 int main(void) {
+	setup();
+	gui_frontend_init();
+	memset(FRAMEBUFFER, 0b1010101010, 1);
+	gui_frontend_draw_framebuffer(FRAMEBUFFER);
+	while (true) {
+		
+	}
+}
+
+int main2(void) {
   setup();
+  gui_frontend_init();
   load_file("test");
+
   while (PC <= sizeof(MEMORY) * 8) {
     printf("PC: 0x%hx\n", PC);
     Word word = *(uint16_t *)&MEMORY[PC];
@@ -224,6 +246,9 @@ int main(void) {
     Instruction inst = parse_instruction(word);
     LOG("word: %hx, instruction: %s", word, opcode_str(inst.opcode));
     do_instruction(inst);
+		gui_frontend_draw_framebuffer(FRAMEBUFFER);
+		//	sleep(1);
   }
+  gui_frontend_cleanup();
   return 0;
 }
